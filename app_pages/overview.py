@@ -12,12 +12,18 @@ st.markdown(
     "in a population can change over time, through chance, fitness differences and external shocks."
 )
 
-with st.container(horizontal=True, gap="medium"):
+with st.grid(5, min_column_width=180):
     for p in ("A", "B", "AB", "O"):
-        st.metric(f"Austria · group {p}", f"{ref.abo[p] * 100:.0f} %", border=True,
-                  help=f"{ref.source_label}, updated {ref.source_updated}.")
-    st.metric("Austria · Rh-negative", f"{ref.rh['Rh-'] * 100:.0f} %", border=True, help=ref.source_label)
-st.caption(f"Observed reference: [{ref.source_label}]({ref.source_url}) · last updated {ref.source_updated} · accessed {ref.accessed}.")
+        st.metric(
+            f"Group {p}", f"{ref.abo[p] * 100:.0f} %", border=True, height="stretch",
+            help=f"Austrian share of group {p}. {ref.source_label}, updated {ref.source_updated}.",
+        )
+    st.metric(
+        "Rh-negative", f"{ref.rh['Rh-'] * 100:.0f} %", border=True, height="stretch",
+        help=f"Austrian share of Rh-negative. {ref.source_label}.",
+    )
+st.caption(f"Observed reference: [{ref.source_label}]({ref.source_url}).")
+st.caption(f"Updated {ref.source_updated}. Accessed {ref.accessed}.")
 
 left, right = st.columns([1.15, 1], gap="large")
 with left:
@@ -86,7 +92,7 @@ steps = [
 grid = st.columns(3)
 for i, (path, icon, label, text) in enumerate(steps):
     with grid[i % 3].container(border=True, height="stretch"):
-        st.page_link(path, label=label, icon=icon)
+        st.page_link(path, label=label, icon=icon, width="stretch")
         st.caption(text)
 
 st.subheader("How to read every number in this app", icon=":material/label:",

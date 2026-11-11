@@ -20,18 +20,30 @@ for k, v in defaults.items():
     st.session_state.setdefault(k, v)
 
 with st.container(border=True):
-    c = st.columns([1.6, 1, 1, 1.6, 1.1], vertical_alignment="bottom")
-    c[0].selectbox("Reference", list(refs), format_func=lambda r: refs[r]["title"], key="pe_ref", persist_state="session",
-                   help="Published blood-group shares used as the target. The Austrian set is a real source. The synthetic demo is made up.")
-    c[1].number_input("Agents", 100, 200_000, step=1000, key="pe_n", persist_state="session",
-                      help="How many synthetic people to create. Smaller populations wander further from the target shares.")
-    c[2].number_input("Seed", 0, 2**31 - 1, key="pe_seed", persist_state="session",
-                      help="Same seed and same settings rebuild the same people.")
-    c[3].selectbox("Genotype inference", list(INIT_METHODS), format_func=INIT_METHODS.get, key="pe_init", persist_state="session",
-                   help="Blood group is what we observe. Genotype is what is inherited. Hardy-Weinberg fills in the hidden AA versus AO split. Explicit split lets you set that split yourself.")
-    c[4].segmented_control("Allocation", ["multinomial", "quota"], required=True, key="pe_alloc", persist_state="session",
-                           format_func={"multinomial": "Sampling", "quota": "Quota"}.get,
-                           help="Sampling draws people at random, so the realised shares wobble. Quota hits the target counts exactly.")
+    top = st.columns(3, vertical_alignment="bottom")
+    top[0].selectbox(
+        "Reference", list(refs), format_func=lambda r: refs[r]["title"], key="pe_ref", persist_state="session",
+        help="The target blood-group shares. Austria is a published source. The synthetic demo is made up.",
+    )
+    top[1].number_input(
+        "Agents", 100, 200_000, step=1000, key="pe_n", persist_state="session",
+        help="How many synthetic people to create. Smaller populations wander further from the target.",
+    )
+    top[2].number_input(
+        "Seed", 0, 2**31 - 1, key="pe_seed", persist_state="session",
+        help="The same seed and the same settings rebuild the same people.",
+    )
+    bottom = st.columns([1.5, 1], vertical_alignment="bottom")
+    bottom[0].selectbox(
+        "Genotype inference", list(INIT_METHODS), format_func=INIT_METHODS.get, key="pe_init", persist_state="session",
+        help="Fills in the hidden AA versus AO split. Explicit split lets you set that split yourself.",
+    )
+    bottom[1].segmented_control(
+        "Allocation", ["multinomial", "quota"], required=True, key="pe_alloc", persist_state="session",
+        width="stretch", wrap=True,
+        format_func={"multinomial": "Sampling", "quota": "Quota"}.get,
+        help="Sampling wobbles around the target. Quota hits the target counts exactly.",
+    )
     if st.session_state.pe_init == "explicit_split":
         s1, s2 = st.columns(2)
         s1.slider("Share of A that is AA", 0.0, 1.0, step=0.05, key="pe_aa", persist_state="session")

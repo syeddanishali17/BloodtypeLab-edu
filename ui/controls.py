@@ -96,18 +96,22 @@ def model_settings(prefix: str) -> SimulationConfig:
         persist_state=PERSIST, help="Same seed + same settings = identical result.",
     )
     st.slider("Years to simulate", 10, 500, step=10, key=_k(prefix, "years"), persist_state=PERSIST,
-              help="One step is one year. 100 to 150 years is enough to see a shock. Selection on old-age survival is still hard to see at 300 years.")
+              help="One step is one year. 100 to 150 years is enough to see a shock.")
     st.toggle("Simulate RhD (+/-) as well", key=_k(prefix, "rh"), persist_state=PERSIST,
               help="Single-locus RhD model described in the brief: + dominant over -.")
 
     with st.expander("Initial genotypes", icon=":material/functions:"):
-        st.segmented_control("Inference method", list(INIT_METHODS), format_func=INIT_METHODS.get,
-                             required=True, key=_k(prefix, "init"), persist_state=PERSIST,
-                             help="How hidden genotypes are filled in from blood groups. EM and Bernstein are two Hardy-Weinberg fits. Explicit split is for checking how much the result depends on that guess.")
-        st.segmented_control("Allocation", ["multinomial", "quota"], required=True,
-                             format_func={"multinomial": "Random sampling", "quota": "Exact quotas"}.get,
-                             key=_k(prefix, "alloc"), persist_state=PERSIST,
-                             help="Exact quotas remove sampling noise from the starting population.")
+        st.segmented_control(
+            "Inference method", list(INIT_METHODS), format_func=INIT_METHODS.get,
+            required=True, key=_k(prefix, "init"), persist_state=PERSIST, width="stretch", wrap=True,
+            help="How the hidden AA versus AO split is filled in. Explicit split is the sensitivity check.",
+        )
+        st.segmented_control(
+            "Allocation", ["multinomial", "quota"], required=True, width="stretch", wrap=True,
+            format_func={"multinomial": "Random sampling", "quota": "Exact quotas"}.get,
+            key=_k(prefix, "alloc"), persist_state=PERSIST,
+            help="Exact quotas remove sampling noise from the starting population.",
+        )
         if st.session_state.get(_k(prefix, "init")) == "explicit_split":
             st.slider("Share of phenotype A that is AA", 0.0, 1.0, step=0.05, key=_k(prefix, "aa"), persist_state=PERSIST,
                       help="Of everyone who looks like group A, this fraction is AA. The rest are AO and can pass O to a child.")
@@ -116,7 +120,7 @@ def model_settings(prefix: str) -> SimulationConfig:
 
     with st.expander("Demography (illustrative)", icon=":material/groups:"):
         st.slider("Total fertility rate (children per woman)", 0.0, 4.0, step=0.05, key=_k(prefix, "tfr"), persist_state=PERSIST,
-                  help="Average number of children a woman would have if she lived through the fertile ages. 2.1 is near replacement. The curve is illustrative, not an Austrian life table.")
+                  help="Children per woman across the fertile ages. 2.1 is near replacement. The curve is illustrative.")
         st.toggle("Density regulation towards initial size", key=_k(prefix, "reg"), persist_state=PERSIST,
                   help="Birth probability x (K/N)^strength. Phenotype-neutral; keeps N stable so frequency changes are not confounded with growth.")
         if st.session_state.get(_k(prefix, "reg"), True):
@@ -136,7 +140,7 @@ def model_settings(prefix: str) -> SimulationConfig:
         options = [*PRESETS, "custom"]
         st.selectbox("Selection preset", options, format_func=lambda p: PRESETS[p]["title"] if p in PRESETS else "Custom (hypothetical)",
                      key=_k(prefix, "sel"), persist_state=PERSIST,
-                     help="A fitness rule changes survival or births by blood group. Neutral is the control. The other presets are labelled hypothetical, except Rh incompatibility, which is a known mechanism with a made-up probability.")
+                     help="Neutral is the control. Other presets are hypothetical, except Rh incompatibility, whose probability here is made up.")
         sel_name = st.session_state.get(_k(prefix, "sel"), "neutral")
         if sel_name in PRESETS:
             st.caption(PRESETS[sel_name]["description"])

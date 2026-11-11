@@ -1,6 +1,8 @@
 # BloodTypeLab
 
-An agent-based model of ABO and RhD blood types, plus a local Streamlit app that runs it.
+An agent-based model of ABO and RhD blood types, plus a Streamlit app that runs it.
+
+The public app is [https://bloodtypelab-edu.streamlit.app/](https://bloodtypelab-edu.streamlit.app/).
 
 Each simulated person carries two ABO alleles and two RhD alleles. Every year some people die, the survivors get one year older, and some women have a child. The child takes one allele at random from each parent. We start from the published Austrian blood-group shares and ask what can move them: chance, a difference in survival or births, or an outside shock such as immigration or a disease that hits one blood group.
 
@@ -64,7 +66,7 @@ Charts use percent. Differences of shares are in percentage points (pp). CSV fil
 
 ## The app
 
-Eight pages, grouped in the sidebar. Hover a page name for a one-line description. Most inputs have a `?` tooltip. Badges mark where a number came from: observed, inferred, simulated, hypothetical, or synthetic. Hover the badge.
+Eight pages in the sidebar, in one list. Hover a page name for a one-line description. Most inputs have a `?` tooltip. Badges mark where a number came from: observed, inferred, simulated, hypothetical, or synthetic. Hover the badge.
 
 | Page | What you do there |
 |---|---|
@@ -115,14 +117,18 @@ python scripts/export_anylogic_bundle.py --out anylogic_bundle
 
 ## Put it on Streamlit Community Cloud
 
-The app is already a normal Streamlit script (`streamlit run app.py`). Community Cloud builds it from this GitHub repo.
+It is already deployed: [https://bloodtypelab-edu.streamlit.app/](https://bloodtypelab-edu.streamlit.app/).
 
-1. Sign in at https://share.streamlit.io with the GitHub account that owns `syeddanishali17/BloodtypeLab-edu`.
-2. Choose **Create app**. Pick that repository, branch `main`, and main file `app.py`.
+Community Cloud builds that URL from this GitHub repo (`syeddanishali17/BloodtypeLab-edu`, branch `main`, file `app.py`, Python 3.12). A push to `main` does not always show up immediately. On [share.streamlit.io](https://share.streamlit.io), open the app and choose **Reboot** after a theme or `requirements.txt` change. A code-only change is usually picked up by the next deploy.
+
+To create the same app again:
+
+1. Sign in at https://share.streamlit.io with the GitHub account that owns the repo.
+2. Choose **Create app**. Pick the repository, branch `main`, and main file `app.py`.
 3. Set the Python version to **3.12**. The code was tested on 3.12.
-4. Leave secrets empty. There is no API key. Do not add `.venv` or `results/` ; they are gitignored.
-5. Deploy. The first build installs `requirements.txt`, which includes Streamlit, Altair, NumPy, pandas and SciPy. Pytest is in that file too. It is unused at runtime. The build takes a few minutes.
-6. Open the URL Cloud gives you. Click Genetics lab and set a parent to `AA`, `BB` or `OO`. The Punnett square should render. Then run a small simulation (a few hundred agents, 20 years) so you know the free instance can finish a run.
+4. Leave secrets empty. There is no API key. Do not add `.venv` or `results/`. They are gitignored.
+5. Deploy. The first build installs `requirements.txt` (Streamlit, Altair, NumPy, pandas, SciPy). Pytest is in that file and is unused at runtime. The build takes a few minutes.
+6. Open the app. In Genetics lab, set a parent to `AA`, `BB` or `OO`. The Punnett square should render. Then run a small simulation (a few hundred agents, 20 years) so you know the free instance can finish a run.
 
 Cloud limits memory and CPU. A comparison with 5,000 agents, 150 years and 30 replicates can stall or get cut off. For a public demo, keep the default population or smaller, and use about 10 replicates. Long jobs still belong on your own machine, via the scripts above.
 

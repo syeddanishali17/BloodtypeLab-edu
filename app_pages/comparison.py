@@ -31,6 +31,96 @@ st.caption(
     "scenario, so differences are measured per seed (paired) and then summarised as mean and 2.5–97.5 % band."
 )
 
+@st.fragment
+def _comparison_view() -> None:
+    """Charts and the year table. Switching the view does not redraw the settings column."""
+    batch = st.session_state.get("batch")
+    if batch is None:
+        return
+    controls = st.container(horizontal=True, gap="medium", wrap=True)
+    family = controls.segmented_control("Quantity", ["Phenotype shares", "Allele frequencies", "Rh-negative share", "Population size"],
+                                  default="Phenotype shares", required=True, key="cmp_family", persist_state="session",
+                                  width="stretch", wrap=True,
+            help="Which quantity the charts use. Later differences are in percentage points.")
+    mode = controls.segmented_control("Show", ["Trajectories", "Difference vs baseline"], default="Trajectories", required=True,
+                                key="cmp_mode", persist_state="session",
+                                width="stretch", wrap=True,
+            help="Difference vs baseline subtracts the paired baseline run, seed by seed, then averages.")
+    if family == "Phenotype shares":
+        metrics, scale, unit = {f"share_{p}": f"Group {p}" for p in ("A", "B", "AB", "O")}, 100.0, "%"
+    elif family == "Allele frequencies":
+        metrics, scale, unit = {f"share_a_{a}": f"Allele {a}" for a in ("A", "B", "O")}, 100.0, "%"
+    elif family == "Rh-negative share":
+        metrics, scale, unit = {"share_rh_neg": "Rh-negative"}, 100.0, "%"
+    else:
+        metrics, scale, unit = {"population": "Population"}, 1.0, "agents"
+    diff = mode == "Difference vs baseline"
+    y_title = ("Δ vs baseline (" + ("pp" if unit == "%" else unit) + ")") if diff else f"Share ({unit})" if unit == "%" else "Agents"
+
+    all_shocks = tuple(sh for s in batch.scenarios for sh in s.shocks)
+    ncols = 2 if len(metrics) > 1 else 1
+    grid = st.columns(ncols)
+    for i, (col, label) in enumerate(metrics.items()):
+        frames = []
+        for s in batch.scenarios:
+            if diff:
+                if s.name == batch.baseline:
+                    continue
+                d = paired_differences(batch, s.name, col, scale)
+            else:
+                d = summarize_replicates(batch.runs[s.name], col)
+                for k in ("mean", "p025", "p975"):
+                    d[k] = d[k] * scale
+            d["scenario"] = s.label
+            frames.append(d)
+        if not frames:
+            grid[i % ncols].info("Add at least one non-baseline scenario to see differences.")
+            continue
+        data = pd.concat(frames)
+        with grid[i % ncols]:
+            st.altair_chart(band(data, colors, y_title, label, all_shocks, height=250, zero_rule=diff, legend=i == 0),
+                            alt=f"{label}: {'difference to baseline' if diff else 'mean and 95 % band'} per scenario")
+    st.caption(
+        "Line = mean over replicates; band = empirical 2.5–97.5 percentiles. "
+        + ("Differences are computed per seed (same starting population) before averaging. " if diff else "")
+        + "These bands describe variation across runs, not a confidence interval for the mean. Band overlap or inclusion of zero is not a significance test."
+    )
+
+    st.subheader("Effect at a chosen year", icon=":material/table_chart:")
+    year = st.slider("Year", 0, batch.base_config.horizon_steps, batch.base_config.horizon_steps,
+                     key=f"cmp_year_{batch.base_config.horizon_steps}",
+                     help="The table below is a snapshot of that year. The default is the last year of the run.")
+    cols = [c for c in metrics if c != "population"] or ["population"]
+    et = endpoint_table(batch, cols, step=year, scale=scale)
+    et["metric"] = et["metric"].map(metrics)
+    fmt = "%.2f" if unit == "%" else "%.0f"
+    st.dataframe(
+        et.drop(columns=["step"]), hide_index=True, alt=f"Scenario summary at year {year}",
+        column_config={
+            "scenario": "Scenario", "metric": "Quantity",
+            "mean": st.column_config.NumberColumn(f"Mean ({unit})", format=fmt),
+            "p025": st.column_config.NumberColumn("2.5 %", format=fmt),
+            "p975": st.column_config.NumberColumn("97.5 %", format=fmt),
+            "diff_mean": st.column_config.NumberColumn("Δ vs baseline", format=fmt, help="Paired mean difference (pp for shares)."),
+            "diff_p025": st.column_config.NumberColumn("Δ 2.5 %", format=fmt),
+            "diff_p975": st.column_config.NumberColumn("Δ 97.5 %", format=fmt),
+        },
+    )
+
+    with st.expander("Export this experiment", icon=":material/download:"):
+        st.caption("Per-run folders (manifest, CSV, validation) plus one long table with every run, step and share.")
+        with st.container(horizontal=True):
+            st.download_button(
+                "All runs (ZIP)", type="primary", icon=":material/folder_zip:", mime="application/zip",
+                file_name="bloodtypelab_comparison.zip",
+                data=lambda: zip_runs(batch.all_runs(), {"all_runs_long.csv": batch_long_table(batch).to_csv(index=False).encode()}),
+            )
+            st.download_button("Long table (CSV)", icon=":material/table_chart:", mime="text/csv",
+                               file_name="bloodtypelab_comparison_long.csv",
+                               data=lambda: batch_long_table(batch).to_csv(index=False).encode())
+            st.download_button("Summary at selected year (CSV)", icon=":material/summarize:", mime="text/csv",
+                               file_name=f"bloodtypelab_summary_year{year}.csv", data=et.to_csv(index=False).encode())
+
 settings_col, results_col = st.columns([1, 2.35], gap="large")
 with settings_col:
     with st.container(border=True):
@@ -121,85 +211,4 @@ with results_col:
     for s in batch.scenarios:
         st.caption(f"**{s.label}:** {s.description}")
 
-    controls = st.container(horizontal=True, gap="medium", wrap=True)
-    family = controls.segmented_control("Quantity", ["Phenotype shares", "Allele frequencies", "Rh-negative share", "Population size"],
-                                  default="Phenotype shares", required=True, key="cmp_family", persist_state="session",
-                                  help="What to plot. Percentage points later are differences of these shares, not a new percent of the population.")
-    mode = controls.segmented_control("Show", ["Trajectories", "Difference vs baseline"], default="Trajectories", required=True,
-                                key="cmp_mode", persist_state="session",
-                                help="Trajectories are the levels. Difference vs baseline subtracts the paired baseline run, seed by seed, then averages.")
-    if family == "Phenotype shares":
-        metrics, scale, unit = {f"share_{p}": f"Group {p}" for p in ("A", "B", "AB", "O")}, 100.0, "%"
-    elif family == "Allele frequencies":
-        metrics, scale, unit = {f"share_a_{a}": f"Allele {a}" for a in ("A", "B", "O")}, 100.0, "%"
-    elif family == "Rh-negative share":
-        metrics, scale, unit = {"share_rh_neg": "Rh-negative"}, 100.0, "%"
-    else:
-        metrics, scale, unit = {"population": "Population"}, 1.0, "agents"
-    diff = mode == "Difference vs baseline"
-    y_title = ("Δ vs baseline (" + ("pp" if unit == "%" else unit) + ")") if diff else f"Share ({unit})" if unit == "%" else "Agents"
-
-    all_shocks = tuple(sh for s in batch.scenarios for sh in s.shocks)
-    ncols = 2 if len(metrics) > 1 else 1
-    grid = st.columns(ncols)
-    for i, (col, label) in enumerate(metrics.items()):
-        frames = []
-        for s in batch.scenarios:
-            if diff:
-                if s.name == batch.baseline:
-                    continue
-                d = paired_differences(batch, s.name, col, scale)
-            else:
-                d = summarize_replicates(batch.runs[s.name], col)
-                for k in ("mean", "p025", "p975"):
-                    d[k] = d[k] * scale
-            d["scenario"] = s.label
-            frames.append(d)
-        if not frames:
-            grid[i % ncols].info("Add at least one non-baseline scenario to see differences.")
-            continue
-        data = pd.concat(frames)
-        with grid[i % ncols]:
-            st.altair_chart(band(data, colors, y_title, label, all_shocks, height=250, zero_rule=diff, legend=i == 0),
-                            alt=f"{label}: {'difference to baseline' if diff else 'mean and 95 % band'} per scenario")
-    st.caption(
-        "Line = mean over replicates; band = empirical 2.5–97.5 percentiles. "
-        + ("Differences are computed per seed (same starting population) before averaging. " if diff else "")
-        + "These bands describe variation across runs, not a confidence interval for the mean. Band overlap or inclusion of zero is not a significance test."
-    )
-
-    st.subheader("Effect at a chosen year", icon=":material/table_chart:")
-    year = st.slider("Year", 0, batch.base_config.horizon_steps, batch.base_config.horizon_steps,
-                     key=f"cmp_year_{batch.base_config.horizon_steps}",
-                     help="The table below is a snapshot of that year. The default is the last year of the run.")
-    cols = [c for c in metrics if c != "population"] or ["population"]
-    et = endpoint_table(batch, cols, step=year, scale=scale)
-    et["metric"] = et["metric"].map(metrics)
-    fmt = "%.2f" if unit == "%" else "%.0f"
-    st.dataframe(
-        et.drop(columns=["step"]), hide_index=True, alt=f"Scenario summary at year {year}",
-        column_config={
-            "scenario": "Scenario", "metric": "Quantity",
-            "mean": st.column_config.NumberColumn(f"Mean ({unit})", format=fmt),
-            "p025": st.column_config.NumberColumn("2.5 %", format=fmt),
-            "p975": st.column_config.NumberColumn("97.5 %", format=fmt),
-            "diff_mean": st.column_config.NumberColumn("Δ vs baseline", format=fmt, help="Paired mean difference (pp for shares)."),
-            "diff_p025": st.column_config.NumberColumn("Δ 2.5 %", format=fmt),
-            "diff_p975": st.column_config.NumberColumn("Δ 97.5 %", format=fmt),
-        },
-    )
-
-    with st.expander("Export this experiment", icon=":material/download:"):
-        st.caption("Per-run folders (manifest, CSV, validation) plus one long table with every run, step and share.")
-        with st.container(horizontal=True):
-            st.download_button(
-                "All runs (ZIP)", type="primary", icon=":material/folder_zip:", mime="application/zip",
-                file_name="bloodtypelab_comparison.zip",
-                data=lambda: zip_runs(batch.all_runs(), {"all_runs_long.csv": batch_long_table(batch).to_csv(index=False).encode()}),
-            )
-            st.download_button("Long table (CSV)", icon=":material/table_chart:", mime="text/csv",
-                               file_name="bloodtypelab_comparison_long.csv",
-                               data=lambda: batch_long_table(batch).to_csv(index=False).encode())
-            st.download_button("Summary at selected year (CSV)", icon=":material/summarize:", mime="text/csv",
-                               file_name=f"bloodtypelab_summary_year{year}.csv", data=et.to_csv(index=False).encode())
-
+    _comparison_view()

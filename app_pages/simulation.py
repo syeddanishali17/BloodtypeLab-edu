@@ -101,59 +101,23 @@ if run_clicked:
         except (ConfigError, InvariantError, ValueError) as exc:
             st.session_state.last_error = str(exc)
 
-# ------------------------------------------------------------------ results (completed run only)
-with results_col:
-    if st.session_state.last_error:
-        st.error(st.session_state.last_error, title="The run was not started or failed. The previous result is kept",
-                 icon=":material/error:")
-    run = st.session_state.last_run
+@st.fragment
+def _studio_charts() -> None:
+    """Chart switcher. Changing the view redraws this block only, not the settings column."""
+    run = st.session_state.get("last_run")
     if run is None:
-        with st.container(border=True):
-            st.markdown("### No completed run yet")
-            st.markdown(
-                "Start with the defaults: a **neutral baseline** of 5 000 agents over 150 years, initialised from the "
-                "Austrian distribution. Then switch on a shock or a fitness rule and run again."
-            )
-            st.caption("Results appear here and in the sidebar. Every run gets a unique ID, seed and manifest.")
-        st.stop()
-
+        return
     cfg = run.config
-    if cfg != draft:
-        st.caption(":orange[Settings on the left differ from the run shown below. Press **Run simulation** to apply them.]")
-
-    head = st.container(horizontal=True, vertical_alignment="center", gap="small")
-    with head:
-        st.markdown(f"#### {run.scenario}")
-        badge("observed" if run.reference["kind"] == "observed" else "synthetic")
-        badge("simulated")
-        if cfg.shocks or cfg.selection.status != "control":
-            badge("hypothetical")
-        if run.invariants_ok:
-            st.badge("Invariants hold every year", icon=":material/check_circle:", color="green")
-        else:
-            st.badge(f"{len(run.invariant_failures)} invariant failures", icon=":material/error:", color="red")
-    st.caption(f"Run `{run.run_id}` · {config_summary(cfg)} · {run.elapsed_seconds:.2f} s")
-    for w in run.warnings:
-        st.caption(f":material/info: {w}")
-
     sh = run.shares()
     ts = run.timeseries
-    first, last = sh.iloc[0], sh.iloc[-1]
-    kpi = st.columns(5)
-    kpi[0].metric("Population", f"{int(last.population):,}", delta=f"{int(last.population - first.population):+,}",
-                  delta_color="off", border=True, chart_data=ts["population"].tolist(), chart_type="area")
-    for col, p in zip(kpi[1:], ABO_PHENOTYPES):
-        col.metric(f"Group {p}", f"{last[f'share_{p}'] * 100:.1f}%",
-                   delta=f"{(last[f'share_{p}'] - first[f'share_{p}']) * 100:+.2f} pp", delta_color="off", border=True,
-                   chart_data=(sh[f"share_{p}"] * 100).round(3).tolist(), chart_type="line",
-                   help="Final share; delta is the change since year 0 in percentage points.")
-
     views = ["Phenotypes", "Alleles", "Genotypes", "Rh factor", "Population & events", "Agents"]
     if not cfg.include_rh:
         views.remove("Rh factor")
-    view = st.segmented_control("View", views, default="Phenotypes", required=True, key="sim_view",
-                                persist_state="session", label_visibility="collapsed",
-                                help="Phenotypes are the blood groups. Alleles are the inherited letters. Genotypes are the pairs. Rh is the separate +/- locus. Population shows births, deaths and size.")
+    view = st.segmented_control(
+        "View", views, default="Phenotypes", required=True, key="sim_view", persist_state="session",
+        width="stretch", wrap=True, label_visibility="collapsed",
+        help="Blood groups, alleles, genotypes, Rh, population, or the agent table.",
+    )
     shocks_drawn = cfg.shocks
 
     if view == "Phenotypes":
@@ -233,4 +197,60 @@ with results_col:
                 column_config={"final A %": st.column_config.NumberColumn(format="%.2f"),
                                "final O %": st.column_config.NumberColumn(format="%.2f")},
             )
+
+
+
+# ------------------------------------------------------------------ results (completed run only)
+with results_col:
+    if st.session_state.last_error:
+        st.error(st.session_state.last_error, title="The run was not started or failed. The previous result is kept",
+                 icon=":material/error:")
+    run = st.session_state.last_run
+    if run is None:
+        with st.container(border=True):
+            st.markdown("### No completed run yet")
+            st.markdown(
+                "Start with the defaults: a **neutral baseline** of 5 000 agents over 150 years, initialised from the "
+                "Austrian distribution. Then switch on a shock or a fitness rule and run again."
+            )
+            st.caption("Results appear here and in the sidebar. Every run gets a unique ID, seed and manifest.")
+        st.stop()
+
+    cfg = run.config
+    if cfg != draft:
+        st.caption(":orange[Settings on the left differ from the run shown below. Press **Run simulation** to apply them.]")
+
+    head = st.container(horizontal=True, vertical_alignment="center", gap="small")
+    with head:
+        st.markdown(f"#### {run.scenario}")
+        badge("observed" if run.reference["kind"] == "observed" else "synthetic")
+        badge("simulated")
+        if cfg.shocks or cfg.selection.status != "control":
+            badge("hypothetical")
+        if run.invariants_ok:
+            st.badge("Invariants hold every year", icon=":material/check_circle:", color="green")
+        else:
+            st.badge(f"{len(run.invariant_failures)} invariant failures", icon=":material/error:", color="red")
+    st.caption(f"Run `{run.run_id}` · {config_summary(cfg)} · {run.elapsed_seconds:.2f} s")
+    for w in run.warnings:
+        st.caption(f":material/info: {w}")
+
+    sh = run.shares()
+    ts = run.timeseries
+    first, last = sh.iloc[0], sh.iloc[-1]
+    with st.grid(5, min_column_width=148):
+        st.metric(
+            "Population", f"{int(last.population):,}", delta=f"{int(last.population - first.population):+,}",
+            delta_color="off", border=True, height="stretch", chart_data=ts["population"].tolist(), chart_type="area",
+        )
+        for p in ABO_PHENOTYPES:
+            st.metric(
+                f"Group {p}", f"{last[f'share_{p}'] * 100:.1f}%",
+                delta=f"{(last[f'share_{p}'] - first[f'share_{p}']) * 100:+.2f} pp", delta_color="off", border=True,
+                height="stretch", chart_data=(sh[f"share_{p}"] * 100).round(3).tolist(), chart_type="line",
+                help="Final share. The delta is the change since year 0, in percentage points.",
+            )
+
+    _studio_charts()
+
 

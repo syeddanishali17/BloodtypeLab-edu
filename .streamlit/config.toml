@@ -4,6 +4,10 @@
 [server]
 runOnSave = false
 
+[runner]
+# Skip a rerun when the script is already running, so a second click does not queue a fade.
+fastReruns = true
+
 [browser]
 gatherUsageStats = false
 

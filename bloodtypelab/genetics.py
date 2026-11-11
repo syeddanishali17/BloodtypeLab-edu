@@ -127,9 +127,9 @@ def punnett_square(parent_1: str, parent_2: str) -> list[list[str]]:
 
 
 def transmission_labels(genotype: str, role: str) -> list[str]:
-    """Axis labels for one parent. Allele 1 and allele 2 stay distinct for AA, BB and OO."""
+    """Axis labels for one parent. Positions stay distinct for AA, BB and OO."""
     g = validate_genotype(genotype)
-    return [f"{role} allele {i} ({allele})" for i, allele in enumerate(g, start=1)]
+    return [f"{role} {i} ({allele})" for i, allele in enumerate(g, start=1)]
 
 
 def genotype_to_codes(genotype: str) -> tuple[int, int]:
