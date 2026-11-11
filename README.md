@@ -163,6 +163,18 @@ The model package does not import Streamlit. A finished run is not edited in pla
 - No A1/A2 subgroups, no weak D, no population structure, no emigration.
 - Open questions are listed in the app under Methods, and in `docs/decisions_from_supervisor.md`.
 
+## What is included, and what is not
+
+The model and the app are original code. `LICENSE` is the MIT license, copyright SyedDanishAli, 2026.
+
+The Austrian blood-group figures are a few published percentages, with the page title, URL and the date they were read. See `data/references/sources.md`. The health-portal page is not copied into the repo.
+
+The bibliography names papers by author and year. The papers themselves are not included. Inter and JetBrains Mono are used as fonts under the SIL Open Font License. The theme loads them from Google Fonts. If that request is blocked, the browser falls back to a system font.
+
+Two slide files were taken out of the repository. They contained a stock picture of blood cells, and there is no licence on file for that picture. Screenshots of this app can be made again from a running session.
+
+This is a student project. It is not an official product of a university or of Gesundheitsportal Österreich.
+
 ## Sources
 
 - Gesundheitsportal Österreich, *Blutgruppenuntersuchung (BGR)*, https://www.gesundheit.gv.at/labor/laborwerte/blutgruppenserologie-transfusion/blutgruppenuntersuchung (updated 21 Dec 2022, accessed 11 Nov 2026).

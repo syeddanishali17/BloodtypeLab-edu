@@ -69,5 +69,6 @@ with st.sidebar:
                 st.badge("Invariant failure", icon=":material/error:", color="red",
                          help="A yearly check failed. The run stopped or is marked bad. See Validation for the detail.")
     st.caption(f"BloodTypeLab v{__version__} · educational model, not a forecast")
+    st.caption("Light or dark: open the menu at the top right. Until you choose, the app follows your system.")
 
 page.run()

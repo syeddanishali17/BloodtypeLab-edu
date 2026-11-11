@@ -12,7 +12,7 @@
 
 > **Project in one sentence:** Build a reproducible, time-stepped agent-based model in Python that simulates the inheritance and changing distribution of ABO (and simplified RhD) blood types in a synthetic population initialised from a sourced Austrian reference; compare a no-shock baseline with at least two external shocks and with explicit fitness hypotheses; expose every experiment through a local Streamlit application with exports, verification evidence and an AnyLogic cross-validation bridge.
 
-**Important:** This document separates (a) what the supplied TU Wien documents require, (b) what the team proposes, and (c) what is already implemented. Nothing here claims supervisor approval.
+**Important:** This document separates (a) what the supplied course documents require, (b) what the team proposes, and (c) what is already implemented. Nothing here claims supervisor approval. It is a student working note, not an official university publication, and the course PDFs are not in this repository.
 
 ---
 

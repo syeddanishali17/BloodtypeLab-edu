@@ -8,7 +8,9 @@ runOnSave = false
 gatherUsageStats = false
 
 [client]
-toolbarMode = "minimal"
+# "viewer" keeps the top-right menu (theme, print) and hides developer buttons.
+# "minimal" was hiding that menu, so light mode looked unavailable.
+toolbarMode = "viewer"
 
 [theme]
 showWidgetBorder = true
