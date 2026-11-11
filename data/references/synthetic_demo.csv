@@ -1,0 +1,7 @@
+system,category,share,source_label,source_url,source_updated,accessed,population_covered,notes
+ABO,A,0.40,"Synthetic demonstration (NOT Austria)",,,,"none - illustrative","Round numbers chosen for teaching; not empirical"
+ABO,B,0.10,"Synthetic demonstration (NOT Austria)",,,,"none - illustrative","Round numbers chosen for teaching; not empirical"
+ABO,AB,0.05,"Synthetic demonstration (NOT Austria)",,,,"none - illustrative","Round numbers chosen for teaching; not empirical"
+ABO,O,0.45,"Synthetic demonstration (NOT Austria)",,,,"none - illustrative","Round numbers chosen for teaching; not empirical"
+RH,Rh+,0.85,"Synthetic demonstration (NOT Austria)",,,,"none - illustrative","Round numbers chosen for teaching; not empirical"
+RH,Rh-,0.15,"Synthetic demonstration (NOT Austria)",,,,"none - illustrative","Round numbers chosen for teaching; not empirical"

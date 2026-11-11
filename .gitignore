@@ -1,0 +1,13 @@
+.venv/
+.claude/
+__pycache__/
+*.pyc
+.pytest_cache/
+results/
+anylogic_bundle/
+anylogic_output.csv
+.streamlit/secrets.toml
+*.partial/
+.DS_Store
+Thumbs.db
+~$*

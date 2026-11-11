@@ -1,0 +1,95 @@
+# BloodTypeLab theme: dual light/dark (users keep the appearance toggle), compact padding,
+# Okabe-Ito-inspired chart palette (colour-blind safe). Based on Streamlit's dense-dashboard template.
+
+[server]
+address = "127.0.0.1"
+headless = false
+runOnSave = false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+
+[theme]
+showWidgetBorder = true
+showSidebarBorder = true
+baseRadius = "8px"
+buttonRadius = "8px"
+font = "'Inter':https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFont = "'Inter':https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap"
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+baseFontSize = 14
+codeFontSize = "13px"
+metricValueFontSize = "1.6rem"
+metricValueFontWeight = 650
+headingFontSizes = ["30px", "22px", "18px", "16px", "14px", "12px"]
+headingFontWeights = [700, 650, 600, 600, 500, 500]
+linkUnderline = false
+paddingTop = "1rem"
+paddingBottom = "3rem"
+
+[theme.light]
+primaryColor = "#B4234A"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F6F4F5"
+codeBackgroundColor = "#F3F1F2"
+textColor = "#1B1418"
+linkColor = "#B4234A"
+borderColor = "#E2DADD"
+codeTextColor = "#3F3438"
+greenColor = "#047857"
+redColor = "#C2410C"
+yellowColor = "#B45309"
+orangeColor = "#C2410C"
+blueColor = "#0369A1"
+violetColor = "#7E22CE"
+grayColor = "#6B6166"
+chartCategoricalColors = ["#0072B2", "#E69F00", "#CC79A7", "#009E73", "#D55E00", "#56B4E9", "#6B6166", "#B4234A"]
+dataframeBorderColor = "#E2DADD"
+dataframeHeaderBackgroundColor = "#F6F4F5"
+dataframeHeaderTextColor = "#1B1418"
+
+[theme.dark]
+primaryColor = "#F0567A"
+backgroundColor = "#141013"
+secondaryBackgroundColor = "#211B1F"
+codeBackgroundColor = "#211B1F"
+textColor = "#F4EEF1"
+linkColor = "#F7849F"
+borderColor = "#3A3036"
+codeTextColor = "#E2D7DC"
+greenColor = "#34D399"
+redColor = "#FB923C"
+yellowColor = "#FBBF24"
+orangeColor = "#FB923C"
+blueColor = "#60A5FA"
+violetColor = "#C084FC"
+grayColor = "#A79BA1"
+chartCategoricalColors = ["#56B4E9", "#F0B53A", "#E29BC4", "#2FC79A", "#F07A3A", "#9AD3F5", "#A79BA1", "#F0567A"]
+dataframeBorderColor = "#3A3036"
+dataframeHeaderBackgroundColor = "#211B1F"
+dataframeHeaderTextColor = "#F4EEF1"
+
+[theme.sidebar]
+paddingTop = "0.75rem"
+paddingBottom = "1.5rem"
+
+[theme.light.sidebar]
+backgroundColor = "#FBF9FA"
+secondaryBackgroundColor = "#F1ECEE"
+codeBackgroundColor = "#EDE7EA"
+textColor = "#1B1418"
+borderColor = "#E2DADD"
+primaryColor = "#B4234A"
+linkColor = "#B4234A"
+
+[theme.dark.sidebar]
+backgroundColor = "#0E0B0D"
+secondaryBackgroundColor = "#211B1F"
+codeBackgroundColor = "#211B1F"
+textColor = "#F4EEF1"
+borderColor = "#3A3036"
+primaryColor = "#F0567A"
+linkColor = "#F7849F"

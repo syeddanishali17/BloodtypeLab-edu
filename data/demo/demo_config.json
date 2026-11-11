@@ -1,0 +1,31 @@
+{
+  "initial_population": 5000,
+  "horizon_steps": 150,
+  "seed": 20261111,
+  "reference_id": "austria_gesundheitsportal_2022",
+  "initialization_method": "hwe_em",
+  "allocation": "multinomial",
+  "include_rh": true,
+  "scenario": "demo_immigration_disease",
+  "shocks": [
+    {
+      "kind": "immigration",
+      "start_step": 30,
+      "duration_steps": 1,
+      "count_per_step": 1000,
+      "source_allele_freqs": {"A": 0.20, "B": 0.25, "O": 0.55},
+      "source_rh_neg_allele_freq": 0.25,
+      "source_name": "High-B source (hypothetical)",
+      "age_min": 18,
+      "age_max": 40
+    },
+    {
+      "kind": "disease",
+      "start_step": 80,
+      "duration_steps": 5,
+      "affected_phenotypes": ["O"],
+      "mode": "additional_probability",
+      "additional_probability": 0.05
+    }
+  ]
+}
