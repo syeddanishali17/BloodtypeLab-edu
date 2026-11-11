@@ -63,9 +63,11 @@ with st.sidebar:
             st.markdown(f"**{run.scenario}** · seed `{run.seed}`")
             st.caption(f"{run.config.initial_population:,} agents · {run.config.horizon_steps} years")
             if run.invariants_ok:
-                st.badge("Invariants hold", icon=":material/check_circle:", color="green")
+                st.badge("Invariants hold", icon=":material/check_circle:", color="green",
+                         help="Each year the books balanced: population, births, deaths, allele counts and ids.")
             else:
-                st.badge("Invariant failure", icon=":material/error:", color="red")
+                st.badge("Invariant failure", icon=":material/error:", color="red",
+                         help="A yearly check failed. The run stopped or is marked bad. See Validation for the detail.")
     st.caption(f"BloodTypeLab v{__version__} · educational model, not a forecast")
 
 page.run()

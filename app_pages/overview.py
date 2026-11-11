@@ -21,7 +21,8 @@ st.caption(f"Observed reference: [{ref.source_label}]({ref.source_url}) · last 
 
 left, right = st.columns([1.15, 1], gap="large")
 with left:
-    st.subheader("The problem", icon=":material/help:")
+    st.subheader("The problem", icon=":material/help:",
+                help="Blood group is what a lab reports. Children inherit alleles, and two people with the same blood group can carry different alleles.")
     st.markdown(
         "Every person carries **two alleles** for the ABO blood group, one from the father and one from the mother. "
         "A and B are codominant, O is recessive, so four phenotypes appear: **A, B, AB, O**. RhD works the same way "
@@ -88,7 +89,8 @@ for i, (path, icon, label, text) in enumerate(steps):
         st.page_link(path, label=label, icon=icon)
         st.caption(text)
 
-st.subheader("How to read every number in this app", icon=":material/label:")
+st.subheader("How to read every number in this app", icon=":material/label:",
+            help="Hover a badge. Observed means a published figure. Inferred means we calculated it. Simulated means the model produced it. Hypothetical means we chose the scenario. Synthetic means the people are not real.")
 provenance_legend()
 st.caption(
     "Hover a badge for its meaning. Demographic parameters are illustrative and uncalibrated; shock and fitness magnitudes "

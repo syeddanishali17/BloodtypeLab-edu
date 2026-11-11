@@ -1,12 +1,87 @@
 # BloodTypeLab
 
-A local agent-based model of ABO and RhD blood types, with a Streamlit app to run it.
+An agent-based model of ABO and RhD blood types, plus a local Streamlit app that runs it.
 
-Each person has two ABO alleles and two RhD alleles. Every year some people die, everyone who is left gets a year older, and some women have a child. The child gets one allele at random from each parent. The starting point is the published Austrian blood-group distribution. The question is what can move that distribution: chance, a fitness difference, or a shock such as immigration or a disease that hits one blood group.
+Each simulated person carries two ABO alleles and two RhD alleles. Every year some people die, the survivors get one year older, and some women have a child. The child takes one allele at random from each parent. We start from the published Austrian blood-group shares and ask what can move them: chance, a difference in survival or births, or an outside shock such as immigration or a disease that hits one blood group.
 
-The model lives in `bloodtypelab/`. The app is `app.py`. Nothing here is a forecast or medical advice. The people in a run are synthetic.
+The model is the Python package `bloodtypelab/`. The app (`app.py`) is a way to run it, compare scenarios and export the tables. It does not replace the code or a written report. The people in a run are synthetic. The output is not a forecast and not medical advice.
 
-## Run it
+## What we are trying to do
+
+1. Read the literature on how ABO and Rhesus types evolved, and keep a short bibliography we can actually check (`docs/literature_review.md`, and the Methods page).
+2. Build a population that starts from the Austrian shares, then try rules for how blood type might affect fitness (survival or births).
+3. Compare at least two outside shocks with a run that has no shock.
+4. Write the results down so someone else can repeat them: config, seed, and the files the app exports.
+
+## Why it is built this way
+
+**We see blood groups, but children inherit alleles.** "41% group A" does not say how many of those people are `AA` and how many are `AO`. Only the alleles are passed on. The default assumption is Hardy-Weinberg equilibrium, which is the usual way to go from blood groups back to allele frequencies when mating is random. The published percents are rounded, so the fit is not exact. The app shows that gap instead of hiding it. You can also ignore Hardy-Weinberg and type the AA / AO split yourself.
+
+**A finite population wanders even when nothing is selecting.** That wandering is genetic drift. A shock or a fitness rule only counts as an effect if it moves the shares more than this noise. That is why comparisons use several runs, and why every scenario in one comparison uses the same seeds. Seed 7 builds the same starting population in the baseline and in the immigration run, so the difference is not "we happened to start with more B".
+
+**The brief asks for individuals, not a single equation for the whole country.** Each person has their own age, sex and alleles, and their own random draws for death, birth and which allele they pass on. The code stores those people in NumPy arrays and updates them together, which is much faster than a Python loop over objects. It is still one record per person. A dead person is never chosen as a parent.
+
+**Shocks interact with age.** A disease that kills mostly old people barely changes what the next generation inherits. A disease that kills young adults does. You only see that if people have ages. The mortality and fertility curves are illustrative (Gompertz-Makeham mortality, a bell-shaped fertility schedule, total fertility rate 2.1). They are not fitted to Statistik Austria. Births are also pulled back toward the starting population size, and that pull does not depend on blood group. Without it, the population would grow or shrink for decades and the frequency plots would be hard to read.
+
+## One simulated year
+
+For each year, in this order:
+
+1. Add any immigrants scheduled for that year. Their genotypes are drawn from the source allele frequencies.
+2. Each living person gets one death draw. Age, a fitness multiplier, a disease and a bottleneck can all enter that probability.
+3. Survivors age by one year.
+4. Each woman aged 15-49 may have at most one child. The father is a random man aged 15-64. The child gets one random allele from the father and one from the mother. Mutation is optional and off by default. Rh incompatibility can drop a pregnancy, and that is also off unless you turn it on.
+5. Newborns join at age 0. They cannot be parents in the year they are born.
+6. Counts are checked. Population must equal last year plus immigrants plus births minus deaths. Allele counts must be twice the number of people. If a check fails, the run stops.
+
+Deaths use the age at the start of the year, so last year's babies can still die as infants. "Disease deaths" in the charts are the extra deaths, not everyone who happened to die while a disease was switched on.
+
+Phenotypes: `AA` and `AO` are group A, `BB` and `BO` are group B, `AB` is AB, `OO` is O. `DD` and `Dd` are Rh+, `dd` is Rh-. Genotype strings are stored in one order (`AO`, never `OA`).
+
+## Starting numbers
+
+`data/references/austria_abo_rh.csv` uses A 41%, B 15%, AB 7%, O 37%, Rh+ 81%, Rh- 19%. Source: Gesundheitsportal Österreich, page updated 21 Dec 2022. The page gives the two margins separately, so the model treats ABO and Rh as independent.
+
+The Hardy-Weinberg fit of those rounded ABO shares is about p(A) = 0.278, p(B) = 0.117, p(O) = 0.605. In that fit, most people with group A are `AO`, which is why two group-A parents can have a group-O child. Sex is 50/50. Ages follow the stationary distribution of the mortality table. There is a second reference, `synthetic_demo`, which is fake and labelled as such.
+
+## Fitness and shocks
+
+Fitness presets multiply survival or birth rates by blood group. Neutral is the control: every multiplier is 1. The other presets are hypothetical. The exception is Rh incompatibility (haemolytic disease of the newborn): the mechanism is real, the probability in the app is not taken from a data set.
+
+Shocks:
+
+- **Immigration.** A chosen number of people per year, for a chosen number of years, from a source allele mix. The "high B" and "high O" sources are made up.
+- **Disease.** For a few years, chosen blood groups (and optionally only Rh+ or Rh-) get a higher death risk. A relative risk on the age hazard mostly hits older people. An extra death probability hits every age.
+- **Bottleneck.** One year of extra deaths that ignore blood type. If the bottleneck moves the shares as much as the disease, the disease result was mostly "the population got smaller", which is drift.
+
+Mutation of an ABO allele exists and defaults to probability 0. Real rates are around 10^-5 to 10^-6 per generation, which you will not see in a few hundred years. Turning the rate up is only for teaching.
+
+## How to read a result
+
+Comparisons are paired. The same seeds are used in every scenario, the difference is taken seed by seed, and then we average. The band on a chart is the 2.5 to 97.5 percentile across those runs. It is the spread of the runs, not a confidence interval for the mean. If the band of a difference includes 0, this experiment did not separate the effect from drift.
+
+Charts use percent. Differences of shares are in percentage points (pp). CSV files store shares as fractions between 0 and 1. Each run has an id and a manifest with the full config, the seed, the reference file hash, and hashes of the output files.
+
+## The app
+
+Eight pages, grouped in the sidebar. Hover a page name for a one-line description. Most inputs have a `?` tooltip. Badges mark where a number came from: observed, inferred, simulated, hypothetical, or synthetic. Hover the badge.
+
+| Page | What you do there |
+|---|---|
+| Overview | The question, the Austrian starting shares, and a short path through the other pages |
+| Genetics lab | Pick two parents. The Punnett square is the exact 2 by 2. The chart next to it is many random births against those exact shares, with a chi-square check |
+| Population explorer | Turn the reference shares into genotypes and then into people. Shows the residual of the Hardy-Weinberg fit, the hidden carriers, ages, and a slice of the agent table |
+| Simulation studio | One run. Settings on the left are a draft. The plot on the right is the last run that finished. Changing a slider does not change that plot until you press Run. A failed run keeps the previous result |
+| Scenario comparison | Baseline plus the shocks you tick, several seeds, bands, and a table at any year |
+| Validation & evidence | Runs the checks in the session. A tick appears only after the check has run |
+| AnyLogic bridge | Downloads a zip (agents, tables, a Java model) and compares an uploaded CSV with repeated Python runs from the same start |
+| Methods & references | The yearly order, the parameter list, assumptions, open questions, a short bibliography |
+
+The sidebar remembers the last completed simulation: scenario, seed, size, and whether the yearly checks passed.
+
+Colours for A, B, AB, O, Rh and the scenarios are the same on every page, and they are chosen so they are not only distinguished by red versus green. Charts have text alternatives. Light and dark theme both work. Nothing runs until you press a button, except the Genetics lab, which is cheap enough to update as you change the parents.
+
+## Run it locally
 
 Tested with Python 3.12 on Windows.
 
@@ -15,7 +90,7 @@ setup_windows.bat
 run_local.bat
 ```
 
-That creates `.venv` if it is missing, installs the pinned packages, runs a short test, and opens http://127.0.0.1:8501.
+`setup_windows.bat` creates `.venv` if it is missing, installs the pinned packages and runs a short test. `run_local.bat` opens http://127.0.0.1:8501 and binds to localhost.
 
 By hand:
 
@@ -28,9 +103,9 @@ python -m venv .venv
 
 On macOS or Linux the interpreter is `.venv/bin/python`.
 
-No database, login, or API key. The app tries to load the Inter font; if that fails it uses a system font.
+No database, login or API key. The theme tries to load the Inter font. Offline, the browser uses a system font.
 
-Headless runs:
+Without the browser:
 
 ```bash
 python scripts/run_baseline.py --config data/demo/demo_config.json
@@ -38,67 +113,24 @@ python scripts/run_experiments.py --replicates 20 --fitness o_survival_advantage
 python scripts/export_anylogic_bundle.py --out anylogic_bundle
 ```
 
-## App pages
+## Put it on Streamlit Community Cloud
 
-| Page | What it is for |
-|---|---|
-| Overview | The question, the yearly loop, the Austrian starting numbers |
-| Genetics lab | Punnett square and a lot of simulated births, compared with the exact probabilities |
-| Population explorer | Turn the reference shares into genotypes and a starting population |
-| Simulation studio | One run: population, demography, fitness, mutation, shocks, export |
-| Scenario comparison | Same seeds across baseline, immigration, disease, bottleneck, fitness |
-| Validation & evidence | Checks you can run yourself, plus where the reference numbers came from |
-| AnyLogic bridge | Export a bundle and compare an AnyLogic CSV with the Python runs |
-| Methods & references | Order of events, parameters, assumptions, open questions, short bibliography |
+The app is already a normal Streamlit script (`streamlit run app.py`). Community Cloud builds it from this GitHub repo.
 
-## The model, briefly
+1. Sign in at https://share.streamlit.io with the GitHub account that owns `syeddanishali17/BloodtypeLab-edu`.
+2. Choose **Create app**. Pick that repository, branch `main`, and main file `app.py`.
+3. Set the Python version to **3.12**. The code was tested on 3.12.
+4. Leave secrets empty. There is no API key. Do not add `.venv` or `results/` ; they are gitignored.
+5. Deploy. The first build installs `requirements.txt`, which includes Streamlit, Altair, NumPy, pandas and SciPy. Pytest is in that file too. It is unused at runtime. The build takes a few minutes.
+6. Open the URL Cloud gives you. Click Genetics lab and set a parent to `AA`, `BB` or `OO`. The Punnett square should render. Then run a small simulation (a few hundred agents, 20 years) so you know the free instance can finish a run.
 
-An agent has an id, sex, age, two ABO alleles (A, B or O), two RhD alleles (D or d), a birth year, and a flag used only by the Rh incompatibility option.
+Cloud limits memory and CPU. A comparison with 5,000 agents, 150 years and 30 replicates can stall or get cut off. For a public demo, keep the default population or smaller, and use about 10 replicates. Long jobs still belong on your own machine, via the scripts above.
 
-Phenotypes: `AA` and `AO` are group A, `BB` and `BO` are group B, `AB` is AB, `OO` is O. `DD` and `Dd` are Rh+, `dd` is Rh-. Genotype strings are stored in a fixed order (`AO`, never `OA`).
-
-One year, in this order:
-
-1. Add any scheduled immigrants.
-2. Each living person gets one death draw. Age, fitness, disease and a bottleneck can all enter that probability.
-3. Survivors age by one year.
-4. Women aged 15-49 may give birth (at most one child that year). The father is a random man aged 15-64. The child takes one random allele from each parent.
-5. Newborns join at age 0. They cannot be parents in that same year.
-6. Counts are checked. If the books do not balance, the run stops.
-
-Deaths use the age at the start of the year, so last year's babies can still die as infants. A dead person is not drawn as a parent.
-
-### Starting population
-
-`data/references/austria_abo_rh.csv` uses A 41%, B 15%, AB 7%, O 37%, Rh+ 81%, Rh- 19% (Gesundheitsportal Österreich, updated 21 Dec 2022). ABO and Rh are treated as independent because the source only gives the two margins.
-
-Those are phenotypes. Inheritance needs genotypes. The default is Hardy-Weinberg, fitted with the gene-counting EM algorithm. With the rounded Austrian figures that comes out near p(A) = 0.278, p(B) = 0.117, p(O) = 0.605. The fit does not match the published percents exactly (they are rounded). The gap is shown in the app. You can also use Bernstein's estimator, or type the AA/AO split yourself.
-
-About 81% of group-A people in that fit are `AO`, so two group-A parents can have a group-O child.
-
-Sex is 50/50. Ages come from the stationary distribution of the mortality table.
-
-### Demography and fitness
-
-Mortality is a Gompertz-Makeham curve plus a separate infant risk, with death certain at 105. Fertility is a bell curve from 15 to 49, scaled to a total fertility rate of 2.1. Births are also multiplied by (K/N), with K equal to the starting size, so the population does not explode or die out and swamp the frequency plots. These numbers are illustrative. They are not a fit to Statistik Austria.
-
-Fitness presets change survival or birth rates by phenotype. They are labelled as hypothetical, except the Rh incompatibility option, which is a known mechanism with a made-up probability. A neutral preset is the control. Mutation of ABO alleles exists and is off by default. Real rates are far too small to see in a few hundred years.
-
-### Shocks
-
-- Immigration: a chosen number of people per year, for a chosen number of years, drawn from a source allele frequency (the presets are hypothetical).
-- Disease: for a few years, selected phenotypes get a higher death risk.
-- Bottleneck: one year of extra deaths that ignore blood type. That is the "this is just drift" control.
-
-Comparisons use the same seeds in every scenario, so the starting population matches. Plots show the mean and a 2.5-97.5% band across replicates. If that band for a difference includes 0, the run did not separate the effect from drift.
-
-## Checks
-
-`pytest` covers the genetics (fixed crosses such as `AA x BB`, and chi-square checks on the random ones), the Hardy-Weinberg fit, population accounting, identical output for the same seed, exports, and a headless pass over the app pages. The Validation page can run the same checks in the session. A passing test means the code did what the rules say. It does not mean the death rates or fitness numbers are true.
+`run_local.bat` passes `--server.address 127.0.0.1` so the laptop app is not exposed on the network. That flag is not in `.streamlit/config.toml`, so Cloud can bind the port itself.
 
 ## AnyLogic
 
-AnyLogic does not run these Python agents. The bridge writes a zip of the starting agents, the tables, and a Java model. You can run that model in AnyLogic, or with Java 11+ on its own, and upload the yearly counts. The app then compares them with repeated Python runs from the same start. See `anylogic/README.md` and `docs/anylogic_integration.md`.
+AnyLogic does not run these Python agents. The bridge writes a zip of the starting agents, the rate tables and a Java model. You can run that model in AnyLogic, or with Java 11+ on its own, and upload the yearly counts. The app then compares them with Python runs that started from the same agents. See `anylogic/README.md` and `docs/anylogic_integration.md`.
 
 ## Layout
 
@@ -118,19 +150,18 @@ bloodtypelab/           the model (no Streamlit imports)
   anylogic_bridge.py    bundle and docking test
 data/references/        Austrian figures and a synthetic demo set
 scripts/                baseline, experiments, AnyLogic export
-anylogic/               Java snippets and a short build note
 tests/
 docs/                   model notes, assumptions, literature starter, report outline
 ```
 
-The scientific code does not import Streamlit. A finished run is not edited in place. A failed run does not replace the last good one.
+The model package does not import Streamlit. A finished run is not edited in place. A failed run does not replace the last good one. Reference CSVs are read only.
 
 ## Limits
 
 - Demography, shock sizes and most fitness effects are hypothetical.
 - The Austrian figures are rounded secondary numbers. A primary donor series would be better before a final write-up. See `data/references/sources.md`.
-- No A1/A2, no weak D, no population structure, no emigration.
-- Open questions for a supervisor are listed in the app (Methods) and in `docs/decisions_from_supervisor.md`.
+- No A1/A2 subgroups, no weak D, no population structure, no emigration.
+- Open questions are listed in the app under Methods, and in `docs/decisions_from_supervisor.md`.
 
 ## Sources
 

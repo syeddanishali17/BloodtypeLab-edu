@@ -28,15 +28,18 @@ st.session_state.setdefault("gl_seed", 1)
 with st.container(border=True):
     c1, c2 = st.columns(2)
     c1.pills("Father's genotype", list(ABO_GENOTYPES), required=True, key="gl_p1",
-             format_func=lambda g: f"{g} ({GENOTYPE_TO_PHENOTYPE[g]})", persist_state="session")
+             format_func=lambda g: f"{g} ({GENOTYPE_TO_PHENOTYPE[g]})", persist_state="session",
+             help="Two ABO alleles. The letter in brackets is the blood group you would type in the lab. AA and AO both look like group A.")
     c2.pills("Mother's genotype", list(ABO_GENOTYPES), required=True, key="gl_p2",
-             format_func=lambda g: f"{g} ({GENOTYPE_TO_PHENOTYPE[g]})", persist_state="session")
+             format_func=lambda g: f"{g} ({GENOTYPE_TO_PHENOTYPE[g]})", persist_state="session",
+             help="Same six genotypes. Allele 1 and allele 2 are kept separate, so AA still has two columns.")
 
 p1, p2 = st.session_state.gl_p1, st.session_state.gl_p2
 left, right = st.columns([1, 1.4], gap="large")
 
 with left:
-    st.subheader("Punnett square", icon=":material/grid_on:")
+    st.subheader("Punnett square", icon=":material/grid_on:",
+                help="Each parent passes one of its two alleles. The four cells are the four equally likely children. The label in brackets is the blood group.")
     st.caption("Theoretical expectation (exact probabilities, no randomness).")
     sq = punnett_square(p1, p2)
     table = pd.DataFrame(
@@ -54,10 +57,13 @@ with left:
     st.caption("Each cell has probability 25 %. Genotypes are written canonically (AO, never OA).")
 
 with right:
-    st.subheader("Simulate many births", icon=":material/casino:")
+    st.subheader("Simulate many births", icon=":material/casino:",
+                help="Grey bars are the exact Punnett probabilities. Red bars are one random sample. Chi-square asks whether that sample is still compatible with the exact probabilities. A small p means the sample is a poor match. With a fair model and a large n, p is usually not tiny.")
     c1, c2 = st.columns(2)
-    c1.select_slider("Number of children", options=[100, 1_000, 10_000, 100_000], key="gl_n", persist_state="session")
-    c2.number_input("Random seed", 0, 10**9, key="gl_seed", persist_state="session")
+    c1.select_slider("Number of children", options=[100, 1_000, 10_000, 100_000], key="gl_n", persist_state="session",
+                     help="How many births to draw. Small numbers jump around the theoretical shares. Large numbers sit on top of them.")
+    c2.number_input("Random seed", 0, 10**9, key="gl_seed", persist_state="session",
+                    help="Same seed and same parents give the same set of children. Change it to see another random draw.")
     n, seed = int(st.session_state.gl_n), int(st.session_state.gl_seed)
     rng = np.random.default_rng(seed)
     a1, a2 = genotype_to_codes(p1)

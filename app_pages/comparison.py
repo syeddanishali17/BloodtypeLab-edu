@@ -42,7 +42,8 @@ with settings_col:
         st.markdown("**Scenarios**")
         st.caption("Baseline (no shocks) is always included.")
         st.pills("Compare baseline with", ["Immigration", "Disease", "Bottleneck", "Fitness rule"], selection_mode="multi",
-                 key="cmp_scen", persist_state="session", label_visibility="collapsed")
+                 key="cmp_scen", persist_state="session", label_visibility="collapsed",
+                 help="Pick one or more alternatives. Baseline, with no shocks, is always run on the same seeds so you can subtract it.")
         chosen = st.session_state.cmp_scen or []
         horizon = base.horizon_steps
         scenarios = [Scenario("baseline", "Baseline", description="No shocks")]
@@ -71,7 +72,8 @@ with settings_col:
     load = sum(s.apply(base, 0).estimated_agent_years() for s in scenarios) * reps
     st.caption(f"{len(scenarios)} scenarios × {reps} replicates = {len(scenarios) * reps} runs · ≈ {load / 1e6:.0f} M agent-years "
                f"(~{max(load / 2.5e7, 0.5):.0f} s)")
-    run_clicked = st.button("Run comparison", type="primary", icon=":material/play_arrow:", width="stretch")
+    run_clicked = st.button("Run comparison", type="primary", icon=":material/play_arrow:", width="stretch",
+                            help="Runs every selected scenario once per seed. This can take a while. The previous comparison stays on screen until a new one finishes.")
 
 if run_clicked:
     with results_col:
@@ -121,9 +123,11 @@ with results_col:
 
     controls = st.container(horizontal=True, gap="medium", wrap=True)
     family = controls.segmented_control("Quantity", ["Phenotype shares", "Allele frequencies", "Rh-negative share", "Population size"],
-                                  default="Phenotype shares", required=True, key="cmp_family", persist_state="session")
+                                  default="Phenotype shares", required=True, key="cmp_family", persist_state="session",
+                                  help="What to plot. Percentage points later are differences of these shares, not a new percent of the population.")
     mode = controls.segmented_control("Show", ["Trajectories", "Difference vs baseline"], default="Trajectories", required=True,
-                                key="cmp_mode", persist_state="session")
+                                key="cmp_mode", persist_state="session",
+                                help="Trajectories are the levels. Difference vs baseline subtracts the paired baseline run, seed by seed, then averages.")
     if family == "Phenotype shares":
         metrics, scale, unit = {f"share_{p}": f"Group {p}" for p in ("A", "B", "AB", "O")}, 100.0, "%"
     elif family == "Allele frequencies":
@@ -166,7 +170,8 @@ with results_col:
 
     st.subheader("Effect at a chosen year", icon=":material/table_chart:")
     year = st.slider("Year", 0, batch.base_config.horizon_steps, batch.base_config.horizon_steps,
-                     key=f"cmp_year_{batch.base_config.horizon_steps}")
+                     key=f"cmp_year_{batch.base_config.horizon_steps}",
+                     help="The table below is a snapshot of that year. The default is the last year of the run.")
     cols = [c for c in metrics if c != "population"] or ["population"]
     et = endpoint_table(batch, cols, step=year, scale=scale)
     et["metric"] = et["metric"].map(metrics)

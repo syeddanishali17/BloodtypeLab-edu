@@ -50,13 +50,16 @@ with settings_col:
         st.markdown("**External shocks** (Task 3)")
         horizon = base.horizon_steps
         shocks = []
-        if st.toggle("Immigration", key="sim_use_imm", persist_state="session"):
+        if st.toggle("Immigration", key="sim_use_imm", persist_state="session",
+                     help="Adds people from another allele mix. This changes the pool directly, so it is usually the fastest way to move the shares."):
             with st.container(border=True):
                 shocks.append(immigration_controls(PREFIX, horizon))
-        if st.toggle("Blood-type-specific disease", key="sim_use_dis", persist_state="session"):
+        if st.toggle("Blood-type-specific disease", key="sim_use_dis", persist_state="session",
+                     help="For a few years, chosen blood groups die more often. Whether the change lasts depends on whether the people who die were still going to have children."):
             with st.container(border=True):
                 shocks.append(disease_controls(PREFIX, horizon, base.include_rh))
-        if st.toggle("Bottleneck (neutral control)", key="sim_use_bn", persist_state="session"):
+        if st.toggle("Bottleneck (neutral control)", key="sim_use_bn", persist_state="session",
+                     help="Kills people at random, ignoring blood type. If a disease does something the bottleneck does not, that something is not just a smaller population."):
             with st.container(border=True):
                 shocks.append(bottleneck_controls(PREFIX, horizon))
         if not shocks:
@@ -64,7 +67,8 @@ with settings_col:
     scenario = "+".join(s.kind for s in shocks) or "baseline"
     draft = with_shocks(base, shocks, scenario)
 
-    run_clicked = st.button("Run simulation", type="primary", icon=":material/play_arrow:", width="stretch")
+    run_clicked = st.button("Run simulation", type="primary", icon=":material/play_arrow:", width="stretch",
+                            help="Runs the draft on the left. The plot on the right changes only if this run finishes. A failed run keeps the previous result.")
     est = draft.estimated_agent_years()
     st.caption(f"≈ {est / 1e6:.1f} M agent-years · typically {max(est / 2.5e7, 0.1):.1f} s on a laptop")
 
@@ -148,7 +152,8 @@ with results_col:
     if not cfg.include_rh:
         views.remove("Rh factor")
     view = st.segmented_control("View", views, default="Phenotypes", required=True, key="sim_view",
-                                persist_state="session", label_visibility="collapsed")
+                                persist_state="session", label_visibility="collapsed",
+                                help="Phenotypes are the blood groups. Alleles are the inherited letters. Genotypes are the pairs. Rh is the separate +/- locus. Population shows births, deaths and size.")
     shocks_drawn = cfg.shocks
 
     if view == "Phenotypes":

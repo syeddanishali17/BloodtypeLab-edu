@@ -95,27 +95,33 @@ def model_settings(prefix: str) -> SimulationConfig:
         "Base seed", min_value=0, max_value=2**31 - 1, step=1, key=_k(prefix, "seed"),
         persist_state=PERSIST, help="Same seed + same settings = identical result.",
     )
-    st.slider("Years to simulate", 10, 500, step=10, key=_k(prefix, "years"), persist_state=PERSIST)
+    st.slider("Years to simulate", 10, 500, step=10, key=_k(prefix, "years"), persist_state=PERSIST,
+              help="One step is one year. 100 to 150 years is enough to see a shock. Selection on old-age survival is still hard to see at 300 years.")
     st.toggle("Simulate RhD (+/-) as well", key=_k(prefix, "rh"), persist_state=PERSIST,
               help="Single-locus RhD model described in the brief: + dominant over -.")
 
     with st.expander("Initial genotypes", icon=":material/functions:"):
         st.segmented_control("Inference method", list(INIT_METHODS), format_func=INIT_METHODS.get,
-                             required=True, key=_k(prefix, "init"), persist_state=PERSIST)
+                             required=True, key=_k(prefix, "init"), persist_state=PERSIST,
+                             help="How hidden genotypes are filled in from blood groups. EM and Bernstein are two Hardy-Weinberg fits. Explicit split is for checking how much the result depends on that guess.")
         st.segmented_control("Allocation", ["multinomial", "quota"], required=True,
                              format_func={"multinomial": "Random sampling", "quota": "Exact quotas"}.get,
                              key=_k(prefix, "alloc"), persist_state=PERSIST,
                              help="Exact quotas remove sampling noise from the starting population.")
         if st.session_state.get(_k(prefix, "init")) == "explicit_split":
-            st.slider("Share of phenotype A that is AA", 0.0, 1.0, step=0.05, key=_k(prefix, "aa"), persist_state=PERSIST)
-            st.slider("Share of phenotype B that is BB", 0.0, 1.0, step=0.05, key=_k(prefix, "bb"), persist_state=PERSIST)
+            st.slider("Share of phenotype A that is AA", 0.0, 1.0, step=0.05, key=_k(prefix, "aa"), persist_state=PERSIST,
+                      help="Of everyone who looks like group A, this fraction is AA. The rest are AO and can pass O to a child.")
+            st.slider("Share of phenotype B that is BB", 0.0, 1.0, step=0.05, key=_k(prefix, "bb"), persist_state=PERSIST,
+                      help="Of everyone who looks like group B, this fraction is BB. The rest are BO.")
 
     with st.expander("Demography (illustrative)", icon=":material/groups:"):
-        st.slider("Total fertility rate (children per woman)", 0.0, 4.0, step=0.05, key=_k(prefix, "tfr"), persist_state=PERSIST)
+        st.slider("Total fertility rate (children per woman)", 0.0, 4.0, step=0.05, key=_k(prefix, "tfr"), persist_state=PERSIST,
+                  help="Average number of children a woman would have if she lived through the fertile ages. 2.1 is near replacement. The curve is illustrative, not an Austrian life table.")
         st.toggle("Density regulation towards initial size", key=_k(prefix, "reg"), persist_state=PERSIST,
                   help="Birth probability x (K/N)^strength. Phenotype-neutral; keeps N stable so frequency changes are not confounded with growth.")
         if st.session_state.get(_k(prefix, "reg"), True):
-            st.slider("Regulation strength", 0.0, 3.0, step=0.1, key=_k(prefix, "regs"), persist_state=PERSIST)
+            st.slider("Regulation strength", 0.0, 3.0, step=0.1, key=_k(prefix, "regs"), persist_state=PERSIST,
+                      help="How hard births are pushed back toward the starting size. 0 turns it off. 1 is the default. It does not favour any blood group.")
         demo = DemographyConfig(
             tfr=float(st.session_state.get(_k(prefix, "tfr"), 2.1)),
             regulation=bool(st.session_state.get(_k(prefix, "reg"), True)),
@@ -129,7 +135,8 @@ def model_settings(prefix: str) -> SimulationConfig:
     with st.expander("Fitness rules (Task 2)", icon=":material/science:"):
         options = [*PRESETS, "custom"]
         st.selectbox("Selection preset", options, format_func=lambda p: PRESETS[p]["title"] if p in PRESETS else "Custom (hypothetical)",
-                     key=_k(prefix, "sel"), persist_state=PERSIST)
+                     key=_k(prefix, "sel"), persist_state=PERSIST,
+                     help="A fitness rule changes survival or births by blood group. Neutral is the control. The other presets are labelled hypothetical, except Rh incompatibility, which is a known mechanism with a made-up probability.")
         sel_name = st.session_state.get(_k(prefix, "sel"), "neutral")
         if sel_name in PRESETS:
             st.caption(PRESETS[sel_name]["description"])
@@ -139,9 +146,12 @@ def model_settings(prefix: str) -> SimulationConfig:
             surv, fec = {}, {}
             cols = st.columns(4)
             for col, p in zip(cols, ABO_PHENOTYPES):
-                surv[p] = col.number_input(f"Death RR {p}", 0.0, 5.0, step=0.01, key=_k(prefix, f"rr_{p}"), persist_state=PERSIST)
-                fec[p] = col.number_input(f"Fecundity {p}", 0.0, 5.0, step=0.01, key=_k(prefix, f"fe_{p}"), persist_state=PERSIST)
-            hdn = st.slider("Rh-HDN pregnancy-loss probability", 0.0, 0.5, step=0.01, key=_k(prefix, "hdn"), persist_state=PERSIST)
+                surv[p] = col.number_input(f"Death RR {p}", 0.0, 5.0, step=0.01, key=_k(prefix, f"rr_{p}"), persist_state=PERSIST,
+                                            help=f"1 leaves group {p} unchanged. Below 1 they die less often. Above 1 they die more often. This scales the age-specific hazard, so it mostly affects older people.")
+                fec[p] = col.number_input(f"Fecundity {p}", 0.0, 5.0, step=0.01, key=_k(prefix, f"fe_{p}"), persist_state=PERSIST,
+                                          help=f"1 leaves group {p} unchanged. Above 1 they are more likely to have a child or to be chosen as the father.")
+            hdn = st.slider("Rh-HDN pregnancy-loss probability", 0.0, 0.5, step=0.01, key=_k(prefix, "hdn"), persist_state=PERSIST,
+                            help="Chance that a sensitised Rh-negative mother loses an Rh-positive pregnancy. 0 turns the mechanism off.")
             selection = custom_selection(surv, fec, hdn)
 
     with st.expander("Mutation (extension, off by default)", icon=":material/genetics:"):
@@ -169,34 +179,44 @@ def model_settings(prefix: str) -> SimulationConfig:
 def immigration_controls(prefix: str, horizon: int) -> ShockConfig:
     _clamp(prefix, ("imm_start", "imm_dur"), horizon)
     st.selectbox("Source population", list(IMMIGRATION_SOURCES), format_func=lambda k: IMMIGRATION_SOURCES[k]["title"],
-                 key=_k(prefix, "imm_src"), persist_state=PERSIST)
+                 key=_k(prefix, "imm_src"), persist_state=PERSIST,
+                 help="Where the newcomers' alleles are drawn from. The high-B and high-O presets are hypothetical, not a real country.")
     src = IMMIGRATION_SOURCES[st.session_state.get(_k(prefix, "imm_src"), "high_b_source")]
     f = src["allele_freqs"]
     st.caption(f"Allele frequencies A {f['A']:.2f} · B {f['B']:.2f} · O {f['O']:.2f} · Rh- allele {src['rh_neg_allele']:.2f}. Status: {src['status']}.")
     c1, c2, c3 = st.columns(3)
-    start = c1.number_input("Start year", 1, horizon, key=_k(prefix, "imm_start"), persist_state=PERSIST)
-    dur = c2.number_input("Duration (years)", 1, horizon, key=_k(prefix, "imm_dur"), persist_state=PERSIST)
-    count = c3.number_input("Immigrants per year", 0, 100_000, step=100, key=_k(prefix, "imm_n"), persist_state=PERSIST)
-    ages = st.slider("Immigrant age range", 0, 100, key=_k(prefix, "imm_age"), persist_state=PERSIST)
+    start = c1.number_input("Start year", 1, horizon, key=_k(prefix, "imm_start"), persist_state=PERSIST,
+                            help="First year the arrivals are added. They join before deaths and births that year.")
+    dur = c2.number_input("Duration (years)", 1, horizon, key=_k(prefix, "imm_dur"), persist_state=PERSIST,
+                          help="How many years in a row people arrive. 1 is a single wave.")
+    count = c3.number_input("Immigrants per year", 0, 100_000, step=100, key=_k(prefix, "imm_n"), persist_state=PERSIST,
+                            help="Headcount added each year of the wave. Compare it with the starting population.")
+    ages = st.slider("Immigrant age range", 0, 100, key=_k(prefix, "imm_age"), persist_state=PERSIST,
+                     help="Ages are drawn uniformly in this range. Young adults can still have children. Retirees mostly cannot.")
     return immigration_shock(st.session_state.get(_k(prefix, "imm_src"), "high_b_source"), int(start), int(count), int(dur), int(ages[0]), int(ages[1]))
 
 
 def disease_controls(prefix: str, horizon: int, include_rh: bool) -> ShockConfig:
     _clamp(prefix, ("dis_start", "dis_dur"), horizon)
     st.pills("Affected ABO phenotypes", list(ABO_PHENOTYPES), selection_mode="multi",
-             key=_k(prefix, "dis_ph"), persist_state=PERSIST)
+             key=_k(prefix, "dis_ph"), persist_state=PERSIST,
+             help="Blood groups that take the extra risk. Leave others untouched.")
     if include_rh:
         st.pills("Restrict to Rh status (optional)", list(RH_PHENOTYPES), selection_mode="multi",
-                 key=_k(prefix, "dis_rh"), persist_state=PERSIST)
+                 key=_k(prefix, "dis_rh"), persist_state=PERSIST,
+                 help="Optional extra filter. Empty means every Rh status of the chosen blood groups.")
     st.segmented_control("Effect type", ["relative_risk", "additional_probability"], required=True,
                          format_func={"relative_risk": "Relative risk on hazard", "additional_probability": "Extra death probability"}.get,
-                         key=_k(prefix, "dis_mode"), persist_state=PERSIST)
+                         key=_k(prefix, "dis_mode"), persist_state=PERSIST,
+                         help="Relative risk mostly kills older people, so the allele frequencies often recover. An extra death probability hits every age, including people who have not had children yet.")
     mode = st.session_state.get(_k(prefix, "dis_mode"), "relative_risk")
     rr, extra = 1.0, 0.0
     if mode == "relative_risk":
-        rr = st.slider("Relative risk (x annual hazard)", 0.0, 30.0, step=0.5, key=_k(prefix, "dis_rr"), persist_state=PERSIST)
+        rr = st.slider("Relative risk (x annual hazard)", 0.0, 30.0, step=0.5, key=_k(prefix, "dis_rr"), persist_state=PERSIST,
+                       help="1 is no change. 5 means five times the usual age-specific death hazard for the chosen groups, during the shock years only.")
     else:
-        extra = st.slider("Extra annual death probability", 0.0, 0.5, step=0.01, key=_k(prefix, "dis_x"), persist_state=PERSIST)
+        extra = st.slider("Extra annual death probability", 0.0, 0.5, step=0.01, key=_k(prefix, "dis_x"), persist_state=PERSIST,
+                          help="Added chance of dying each shock year, on top of normal mortality, for every affected person regardless of age.")
     c1, c2 = st.columns(2)
     start = c1.number_input("Start year", 1, horizon, key=_k(prefix, "dis_start"), persist_state=PERSIST)
     dur = c2.number_input("Duration (years)", 1, horizon, key=_k(prefix, "dis_dur"), persist_state=PERSIST)
@@ -212,8 +232,10 @@ def disease_controls(prefix: str, horizon: int, include_rh: bool) -> ShockConfig
 def bottleneck_controls(prefix: str, horizon: int) -> ShockConfig:
     _clamp(prefix, ("bn_start",), horizon)
     c1, c2 = st.columns(2)
-    frac = c1.slider("Extra mortality (all phenotypes)", 0.0, 0.95, step=0.05, key=_k(prefix, "bn_f"), persist_state=PERSIST)
-    start = c2.number_input("Year", 1, horizon, key=_k(prefix, "bn_start"), persist_state=PERSIST)
+    frac = c1.slider("Extra mortality (all phenotypes)", 0.0, 0.95, step=0.05, key=_k(prefix, "bn_f"), persist_state=PERSIST,
+                     help="Chance of an extra death that year, the same for every blood group. 0.5 removes about half the population at random.")
+    start = c2.number_input("Year", 1, horizon, key=_k(prefix, "bn_start"), persist_state=PERSIST,
+                            help="The bottleneck lasts one year. Use it as the control next to a disease or a migration wave.")
     st.caption("Neutral control: removes people at random, so any lasting change is drift, not selection.")
     return bottleneck_shock(float(frac), int(start))
 

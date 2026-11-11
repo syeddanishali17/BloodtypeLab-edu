@@ -21,17 +21,23 @@ for k, v in defaults.items():
 
 with st.container(border=True):
     c = st.columns([1.6, 1, 1, 1.6, 1.1], vertical_alignment="bottom")
-    c[0].selectbox("Reference", list(refs), format_func=lambda r: refs[r]["title"], key="pe_ref", persist_state="session")
-    c[1].number_input("Agents", 100, 200_000, step=1000, key="pe_n", persist_state="session")
-    c[2].number_input("Seed", 0, 2**31 - 1, key="pe_seed", persist_state="session")
-    c[3].selectbox("Genotype inference", list(INIT_METHODS), format_func=INIT_METHODS.get, key="pe_init", persist_state="session")
+    c[0].selectbox("Reference", list(refs), format_func=lambda r: refs[r]["title"], key="pe_ref", persist_state="session",
+                   help="Published blood-group shares used as the target. The Austrian set is a real source. The synthetic demo is made up.")
+    c[1].number_input("Agents", 100, 200_000, step=1000, key="pe_n", persist_state="session",
+                      help="How many synthetic people to create. Smaller populations wander further from the target shares.")
+    c[2].number_input("Seed", 0, 2**31 - 1, key="pe_seed", persist_state="session",
+                      help="Same seed and same settings rebuild the same people.")
+    c[3].selectbox("Genotype inference", list(INIT_METHODS), format_func=INIT_METHODS.get, key="pe_init", persist_state="session",
+                   help="Blood group is what we observe. Genotype is what is inherited. Hardy-Weinberg fills in the hidden AA versus AO split. Explicit split lets you set that split yourself.")
     c[4].segmented_control("Allocation", ["multinomial", "quota"], required=True, key="pe_alloc", persist_state="session",
-                           format_func={"multinomial": "Sampling", "quota": "Quota"}.get)
+                           format_func={"multinomial": "Sampling", "quota": "Quota"}.get,
+                           help="Sampling draws people at random, so the realised shares wobble. Quota hits the target counts exactly.")
     if st.session_state.pe_init == "explicit_split":
         s1, s2 = st.columns(2)
         s1.slider("Share of A that is AA", 0.0, 1.0, step=0.05, key="pe_aa", persist_state="session")
         s2.slider("Share of B that is BB", 0.0, 1.0, step=0.05, key="pe_bb", persist_state="session")
-    generate = st.button("Generate population", type="primary", icon=":material/person_add:")
+    generate = st.button("Generate population", type="primary", icon=":material/person_add:",
+                         help="Builds a new starting population. The one on screen stays until this succeeds.")
 
 if generate:
     try:
@@ -69,9 +75,12 @@ with st.container(horizontal=True):
     st.markdown("→")
     badge("simulated")
 m = st.columns(4)
-m[0].metric("Allele A frequency", f"{inf.allele_freqs['A']:.3f}", border=True)
-m[1].metric("Allele B frequency", f"{inf.allele_freqs['B']:.3f}", border=True)
-m[2].metric("Allele O frequency", f"{inf.allele_freqs['O']:.3f}", border=True)
+m[0].metric("Allele A frequency", f"{inf.allele_freqs['A']:.3f}", border=True,
+            help="Share of all ABO alleles that are A. About twice a person's contribution, because everyone carries two.")
+m[1].metric("Allele B frequency", f"{inf.allele_freqs['B']:.3f}", border=True,
+            help="Share of all ABO alleles that are B.")
+m[2].metric("Allele O frequency", f"{inf.allele_freqs['O']:.3f}", border=True,
+            help="Share of all ABO alleles that are O. O is common even though many carriers look like group A or B.")
 m[3].metric("Max. residual (inferred − reference)", f"{inf.max_abs_residual * 100:.2f} pp", border=True,
             help="Hardy-Weinberg cannot reproduce rounded percentages exactly; we report the gap instead of forcing a fit.")
 for note in inf.notes:

@@ -2,8 +2,6 @@
 # Okabe-Ito-inspired chart palette (colour-blind safe). Based on Streamlit's dense-dashboard template.
 
 [server]
-address = "127.0.0.1"
-headless = false
 runOnSave = false
 
 [browser]

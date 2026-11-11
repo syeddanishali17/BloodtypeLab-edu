@@ -12,6 +12,7 @@ st.caption("Notes for explaining the model: the yearly loop, parameters, assumpt
 section = st.segmented_control(
     "Section", ["One simulated year", "Parameters", "Assumptions", "Open decisions", "Literature", "Limitations"],
     default="One simulated year", required=True, key="m_section", persist_state="session", label_visibility="collapsed",
+    help="The yearly order, the numbers we chose and why, what is still open, and what the model does not claim.",
 )
 
 if section == "One simulated year":

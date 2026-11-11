@@ -27,8 +27,10 @@ with verif_tab:
         "Hardy–Weinberg inference recovery, reproducibility, zero-magnitude shocks, accounting invariants under all shocks, "
         "and a neutral-drift trend test."
     )
-    quick = st.toggle("Quick mode (smaller samples)", value=False, key="val_quick")
-    if st.button("Run verification suite", type="primary", icon=":material/play_arrow:"):
+    quick = st.toggle("Quick mode (smaller samples)", value=False, key="val_quick",
+                      help="Uses fewer simulated births. Fine for a first look. Use the full run before you quote a result.")
+    if st.button("Run verification suite", type="primary", icon=":material/play_arrow:",
+                 help="Runs the checks in this session and shows the real pass or fail. The ticks are not stored in the code."):
         with st.spinner("Running checks…"):
             t0 = time.perf_counter()
             checks = run_verification_suite(n_births=10_000 if quick else 20_000, quick=quick)
